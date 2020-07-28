@@ -12,11 +12,14 @@ import com.raywenderlich.podplay.R
 import com.raywenderlich.podplay.repository.ItunesRepo
 import com.raywenderlich.podplay.service.ItunesService
 
+import kotlinx.android.synthetic.main.activity_podcast.*
+
 class PodcastActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_podcast)
+        setupToolbar()
     }
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
@@ -29,6 +32,10 @@ class PodcastActivity : AppCompatActivity() {
         searchView.setSearchableInfo(searchManager.getSearchableInfo(componentName))
 
         return true
+    }
+
+    private fun setupToolbar() {
+        setSupportActionBar(toolbar)
     }
 
     override fun onNewIntent(intent: Intent) {
