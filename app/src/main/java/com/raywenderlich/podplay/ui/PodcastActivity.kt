@@ -31,6 +31,7 @@ class PodcastActivity : AppCompatActivity(), PodcastListAdapter.PodcastListAdapt
         setupToolbar()
         setupViewModels()
         updateControls()
+        handleIntent(intent) // reloads last intent saved in onNewIntent() -- relaunches search
     }
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
