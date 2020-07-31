@@ -35,10 +35,12 @@ class PodcastActivity : AppCompatActivity(), PodcastListAdapter.PodcastListAdapt
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_podcast)
+
         setupToolbar()
         setupViewModels()
         updateControls()
         handleIntent(intent) // reloads last intent saved in onNewIntent() -- relaunches search
+        addBackStackListener()
     }
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
@@ -49,6 +51,11 @@ class PodcastActivity : AppCompatActivity(), PodcastListAdapter.PodcastListAdapt
         val searchManager = getSystemService(Context.SEARCH_SERVICE) as SearchManager
 
         searchView.setSearchableInfo(searchManager.getSearchableInfo(componentName))
+
+        // in case of configuration change, prevent mixing search/detail elements
+        if (supportFragmentManager.backStackEntryCount > 0) {
+            podcastRecyclerView.visibility = View.INVISIBLE
+        }
 
         // Menu is recreated when we add the Fragment menu item, so we must hide the searchMenu here
         if (podcastRecyclerView.visibility == View.INVISIBLE) {
@@ -162,6 +169,14 @@ class PodcastActivity : AppCompatActivity(), PodcastListAdapter.PodcastListAdapt
         podcastRecyclerView.visibility = View.INVISIBLE
 
         searchMenuItem.isVisible = false
+    }
+
+    private fun addBackStackListener() {
+        supportFragmentManager.addOnBackStackChangedListener {
+            if (supportFragmentManager.backStackEntryCount == 0) {
+                podcastRecyclerView.visibility = View.VISIBLE
+            }
+        }
     }
 
     companion object {
