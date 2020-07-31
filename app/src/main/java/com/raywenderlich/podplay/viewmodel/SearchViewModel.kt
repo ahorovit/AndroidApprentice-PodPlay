@@ -34,8 +34,6 @@ class SearchViewModel(application: Application) : AndroidViewModel(application) 
         )
     }
 
-
-
     data class PodcastSummaryViewData(
         var name: String? = "",
         var lastUpdated: String? = "",

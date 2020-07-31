@@ -6,4 +6,6 @@
     <string name="label_last_updated">Last updated</string>
     <string name="title_label">Title</string>
     <string name="default_date">01/01/18</string>
+    <string name="subscribe">Subscribe</string>
+    <string name="ok_button">OK</string>
 </resources>
