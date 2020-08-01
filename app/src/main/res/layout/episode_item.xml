@@ -32,7 +32,7 @@
         tools:text="@string/default_date"/>
 
     <TextView
-        android:id="@id/releaseDateView"
+        android:id="@+id/durationView"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="top"
