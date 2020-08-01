@@ -3,30 +3,31 @@ package com.raywenderlich.podplay.ui
 import android.app.SearchManager
 import android.content.Context
 import android.content.Intent
-import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
-import android.util.Log
 import android.view.Menu
 import android.view.MenuItem
 import android.view.View
 import androidx.activity.viewModels
 import androidx.appcompat.app.AlertDialog
+import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.SearchView
+import androidx.lifecycle.Observer
 import androidx.recyclerview.widget.DividerItemDecoration
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.raywenderlich.podplay.R
 import com.raywenderlich.podplay.adapter.PodcastListAdapter
+import com.raywenderlich.podplay.db.PodPlayDatabase
 import com.raywenderlich.podplay.repository.ItunesRepo
 import com.raywenderlich.podplay.repository.PodcastRepo
 import com.raywenderlich.podplay.service.FeedService
 import com.raywenderlich.podplay.service.ItunesService
-import com.raywenderlich.podplay.service.RssFeedService
 import com.raywenderlich.podplay.viewmodel.PodcastViewModel
 import com.raywenderlich.podplay.viewmodel.SearchViewModel
-
+import com.raywenderlich.podplay.adapter.PodcastListAdapter.PodcastListAdapterListener
+import com.raywenderlich.podplay.ui.PodcastDetailsFragment.OnPodcastDetailsListener
 import kotlinx.android.synthetic.main.activity_podcast.*
 
-class PodcastActivity : AppCompatActivity(), PodcastListAdapter.PodcastListAdapterListener {
+class PodcastActivity : AppCompatActivity(), PodcastListAdapterListener, OnPodcastDetailsListener {
 
     private val searchViewModel by viewModels<SearchViewModel>()
     private val podcastViewModel by viewModels<PodcastViewModel>()
@@ -43,6 +44,7 @@ class PodcastActivity : AppCompatActivity(), PodcastListAdapter.PodcastListAdapt
         updateControls()
         handleIntent(intent) // reloads last intent saved in onNewIntent() -- relaunches search
         addBackStackListener()
+        setupPodcastListView()
     }
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
@@ -73,7 +75,9 @@ class PodcastActivity : AppCompatActivity(), PodcastListAdapter.PodcastListAdapt
 
     private fun setupViewModels() {
         searchViewModel.iTunesRepo = ItunesRepo(ItunesService.instance)
-        podcastViewModel.podcastRepo = PodcastRepo(FeedService.instance)
+
+        val db = PodPlayDatabase.getInstance(this)
+        podcastViewModel.podcastRepo = PodcastRepo(FeedService.instance, db.podcastDao())
     }
 
     private fun updateControls() {
@@ -179,9 +183,30 @@ class PodcastActivity : AppCompatActivity(), PodcastListAdapter.PodcastListAdapt
         }
     }
 
+    private fun setupPodcastListView() {
+        podcastViewModel.getPodcasts()?.observe(this, Observer {
+            if (it != null) {
+                showSubscribedPodcasts()
+            }
+        })
+    }
+
+    private fun showSubscribedPodcasts() {
+        val podcasts = podcastViewModel.getPodcasts()?.value
+
+        if (podcasts != null) {
+            toolbar.title = getString(R.string.subscribed_podcasts)
+            podcastListAdapter.setSearchData(podcasts)
+        }
+    }
+
     companion object {
         private const val TAG = "PodcastActivity"
         private const val TAG_DETAILS_FRAGMENT = "DetailsFragment"
     }
 
+    override fun onSubscribe() {
+        podcastViewModel.saveActivePodcast()
+        supportFragmentManager.popBackStack()
+    }
 }

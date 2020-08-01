@@ -8,4 +8,5 @@
     <string name="default_date">01/01/18</string>
     <string name="subscribe">Subscribe</string>
     <string name="ok_button">OK</string>
+    <string name="subscribed_podcasts">Subscribed Podcasts</string>
 </resources>
