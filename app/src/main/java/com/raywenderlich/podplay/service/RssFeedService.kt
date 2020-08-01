@@ -56,6 +56,7 @@ class RssFeedService: FeedService {
                         "description" -> currentItem.description = node.textContent
                         "guid" -> currentItem.guid = node.textContent
                         "pubDate" -> currentItem.pubDate = node.textContent
+                        "itunes:duration" -> currentItem.duration = node.textContent
                         "link" -> currentItem.link = node.textContent
                         "enclosure" -> {
                             currentItem.url = node.attributes.getNamedItem("url").textContent
