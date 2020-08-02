@@ -6,6 +6,7 @@ import android.content.Intent
 import android.os.Bundle
 import android.view.Menu
 import android.view.MenuItem
+import android.view.MenuItem.OnActionExpandListener
 import android.view.View
 import androidx.activity.viewModels
 import androidx.appcompat.app.AlertDialog
@@ -51,6 +52,18 @@ class PodcastActivity : AppCompatActivity(), PodcastListAdapterListener, OnPodca
         menuInflater.inflate(R.menu.menu_search, menu)
 
         searchMenuItem = menu.findItem(R.id.search_item)
+        searchMenuItem.setOnActionExpandListener(object: OnActionExpandListener {
+            override fun onMenuItemActionExpand(item: MenuItem?): Boolean {
+                return true
+            }
+
+            // When done searching, we want to show subscribed podcasts again
+            override fun onMenuItemActionCollapse(item: MenuItem?): Boolean {
+                showSubscribedPodcasts()
+                return true
+            }
+        })
+
         val searchView = searchMenuItem.actionView as SearchView
         val searchManager = getSystemService(Context.SEARCH_SERVICE) as SearchManager
 
