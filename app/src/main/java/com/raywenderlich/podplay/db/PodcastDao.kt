@@ -10,6 +10,10 @@ import com.raywenderlich.podplay.model.Podcast
 
 @Dao
 interface PodcastDao {
+
+    @Query("SELECT * FROM Podcast WHERE feedUrl = :feedUrl")
+    fun loadPodcast(feedUrl: String): Podcast?
+
     @Query("SELECT * FROM Podcast ORDER BY feedTitle")
     fun loadPodcasts(): LiveData<List<Podcast>>
 

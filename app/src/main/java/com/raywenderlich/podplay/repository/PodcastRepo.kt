@@ -16,13 +16,27 @@ class PodcastRepo(
     private var podcastDao: PodcastDao
 ) {
     fun getPodcast(feedUrl: String, callback: (Podcast?) -> Unit) {
-        var podcast: Podcast? = null
-        feedService.getFeed(feedUrl) { feedResponse ->
-            if (feedResponse != null) {
-                podcast = rssResponseToPodcast(feedUrl, "", feedResponse)
-            }
-            GlobalScope.launch(Dispatchers.Main) { // updates to UI must happen on main thread (to avoid unexpected results)
-                callback(podcast)
+        GlobalScope.launch {
+            // Check if podcast is already in DB (subscribed)
+            val subscribed = podcastDao.loadPodcast(feedUrl)
+
+            if (subscribed != null) {
+                subscribed.id?.let {
+                    subscribed.episodes = podcastDao.loadEpisodes(it)
+                    GlobalScope.launch(Dispatchers.Main) {
+                        callback(subscribed)
+                    }
+                }
+            } else {
+                var podcast: Podcast? = null
+                feedService.getFeed(feedUrl) { feedResponse ->
+                    if (feedResponse != null) {
+                        podcast = rssResponseToPodcast(feedUrl, "", feedResponse)
+                    }
+                    GlobalScope.launch(Dispatchers.Main) { // updates to UI must happen on main thread (to avoid unexpected results)
+                        callback(podcast)
+                    }
+                }
             }
         }
     }

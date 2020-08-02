@@ -153,7 +153,7 @@ class PodcastActivity : AppCompatActivity(), PodcastListAdapterListener, OnPodca
     }
 
     private fun createPodcastDetailsFragment(): PodcastDetailsFragment {
-        var podcastDetailsFragment = supportFragmentManager
+        val podcastDetailsFragment = supportFragmentManager
             .findFragmentByTag(TAG_DETAILS_FRAGMENT) as PodcastDetailsFragment?
 
         return podcastDetailsFragment ?: PodcastDetailsFragment.newInstance()
