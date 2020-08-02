@@ -93,6 +93,12 @@ class PodcastRepo(
         }
     }
 
+    fun delete(podcast: Podcast) {
+        GlobalScope.launch {
+            podcastDao.deletePodcast(podcast)
+        }
+    }
+
     fun getAll(): LiveData<List<Podcast>> {
         return podcastDao.loadPodcasts()
     }

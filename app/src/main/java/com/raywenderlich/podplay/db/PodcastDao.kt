@@ -2,6 +2,7 @@ package com.raywenderlich.podplay.db
 
 import androidx.lifecycle.LiveData
 import androidx.room.Dao
+import androidx.room.Delete
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy.REPLACE
 import androidx.room.Query
@@ -25,4 +26,7 @@ interface PodcastDao {
 
     @Insert(onConflict = REPLACE)
     fun insertEpisode(episode: Episode): Long
+
+    @Delete
+    fun deletePodcast(podcast: Podcast)
 }

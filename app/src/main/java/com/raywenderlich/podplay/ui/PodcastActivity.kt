@@ -209,4 +209,9 @@ class PodcastActivity : AppCompatActivity(), PodcastListAdapterListener, OnPodca
         podcastViewModel.saveActivePodcast()
         supportFragmentManager.popBackStack()
     }
+
+    override fun onUnsubscribe() {
+        podcastViewModel.deleteActivePodcast()
+        supportFragmentManager.popBackStack()
+    }
 }

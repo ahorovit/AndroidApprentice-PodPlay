@@ -59,6 +59,14 @@ class PodcastViewModel(application: Application): AndroidViewModel(application) 
         }
     }
 
+    fun deleteActivePodcast() {
+        val repo = podcastRepo ?: return
+
+        activePodcast?.let {
+            repo.delete(it)
+        }
+    }
+
     private fun podcastToSumarryView(podcast: Podcast): PodcastSummaryViewData {
         return PodcastSummaryViewData(
             podcast.feedTitle,
@@ -70,7 +78,7 @@ class PodcastViewModel(application: Application): AndroidViewModel(application) 
 
     private fun podcastToPodcastView(podcast: Podcast): PodcastViewData {
         return PodcastViewData(
-            false,
+            podcast.id != null, // If ID is set, it was loaded from DB, and it's subscribed
             podcast.feedTitle,
             podcast.feedUrl,
             podcast.feedDesc,

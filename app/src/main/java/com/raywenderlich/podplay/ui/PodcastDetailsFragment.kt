@@ -12,13 +12,17 @@ import com.bumptech.glide.Glide
 import com.raywenderlich.podplay.R
 import com.raywenderlich.podplay.adapter.EpisodeListAdapter
 import com.raywenderlich.podplay.viewmodel.PodcastViewModel
-import kotlinx.android.synthetic.main.fragment_podcast_details.*
 import java.lang.RuntimeException
 
+import kotlinx.android.synthetic.main.fragment_podcast_details.*
+
+
 class PodcastDetailsFragment : Fragment() {
+    private var menuItem: MenuItem? = null
     private var listener: OnPodcastDetailsListener? = null
     private val podcastViewModel: PodcastViewModel by activityViewModels()
     private lateinit var episodeListAdapter: EpisodeListAdapter
+
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -42,6 +46,9 @@ class PodcastDetailsFragment : Fragment() {
     override fun onCreateOptionsMenu(menu: Menu, inflater: MenuInflater) {
         super.onCreateOptionsMenu(menu, inflater)
         inflater.inflate(R.menu.menu_details, menu)
+
+        menuItem = menu.findItem(R.id.menu_feed_action)
+        updateMenuItem()
     }
 
     private fun setupControls() {
@@ -71,6 +78,16 @@ class PodcastDetailsFragment : Fragment() {
         }
     }
 
+    private fun updateMenuItem() {
+        val viewData = podcastViewModel.activePodcastViewData ?: return
+
+        menuItem?.title = if (viewData.subscribed) {
+            getString(R.string.unsubscribe)
+        } else {
+            getString(R.string.subscribe)
+        }
+    }
+
     override fun onAttach(context: Context) {
         super.onAttach(context)
         if (context is OnPodcastDetailsListener) {
@@ -84,7 +101,11 @@ class PodcastDetailsFragment : Fragment() {
         return when (item.itemId) {
             R.id.menu_feed_action -> {
                 podcastViewModel.activePodcastViewData?.feedUrl?.let {
-                    listener?.onSubscribe()
+                    if (podcastViewModel.activePodcastViewData?.subscribed == true) {
+                        listener?.onUnsubscribe()
+                    } else {
+                        listener?.onSubscribe()
+                    }
                 }
                 true
             }
@@ -100,5 +121,6 @@ class PodcastDetailsFragment : Fragment() {
 
     interface OnPodcastDetailsListener {
         fun onSubscribe()
+        fun onUnsubscribe()
     }
 }
