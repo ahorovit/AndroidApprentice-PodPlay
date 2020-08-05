@@ -47,6 +47,7 @@ dependencies {
     implementation "androidx.activity:activity-ktx:1.1.0"
     implementation "com.github.bumptech.glide:glide:4.11.0"
     implementation 'androidx.fragment:fragment-ktx:1.2.5'
+    implementation "androidx.media:media:1.1.0"
     implementation "org.jetbrains.kotlinx:kotlinx-coroutines-core:$coroutines_version"
     implementation "org.jetbrains.kotlinx:kotlinx-coroutines-android:$coroutines_version"
     implementation "androidx.work:work-runtime-ktx:2.3.4"

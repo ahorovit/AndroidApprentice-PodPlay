@@ -12,21 +12,34 @@ import com.raywenderlich.podplay.viewmodel.PodcastViewModel.EpisodeViewData
 import kotlinx.android.synthetic.main.episode_item.view.*
 
 class EpisodeListAdapter(
-    private var episodeViewList: List<EpisodeViewData>?
+    private var episodeViewList: List<EpisodeViewData>?,
+    private val episodeListAdapterListener: EpisodeListAdapterListener
 ) : RecyclerView.Adapter<EpisodeListAdapter.ViewHolder>() {
 
-    class ViewHolder(view: View) : RecyclerView.ViewHolder(view) {
+    class ViewHolder(
+        view: View,
+        private val episodeListAdapterListener: EpisodeListAdapterListener
+    ) : RecyclerView.ViewHolder(view) {
         var episodeViewData: EpisodeViewData? = null
         var titleTextView: TextView = view.titleView
         var descTextView: TextView = view.descView
         val durationTextView: TextView = view.durationView
         val releaseDateTextView: TextView = view.releaseDateView
+
+        init {
+            view.setOnClickListener {
+                episodeViewData?.let {
+                    episodeListAdapterListener.onSelectedEpisode(it)
+                }
+            }
+        }
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
         return ViewHolder(
             LayoutInflater.from(parent.context)
-                .inflate(R.layout.episode_item, parent, false)
+                .inflate(R.layout.episode_item, parent, false),
+            episodeListAdapterListener
         )
     }
 
@@ -46,5 +59,9 @@ class EpisodeListAdapter(
         holder.releaseDateTextView.text = episodeView.releaseDate?.let {
             DateUtils.dateToShortDate(it)
         }
+    }
+
+    interface EpisodeListAdapterListener {
+        fun onSelectedEpisode(episodeViewData: EpisodeViewData)
     }
 }

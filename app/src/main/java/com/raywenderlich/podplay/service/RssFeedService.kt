@@ -31,7 +31,7 @@ class RssFeedService: FeedService {
 
                         domToRssFeedResponse(doc, rssFeedResponse)
                         callback(rssFeedResponse)
-                        println(rssFeedResponse)
+//                        println(rssFeedResponse)
                         return
                     }
                 }
