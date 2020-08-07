@@ -57,7 +57,7 @@ class PodcastActivity : AppCompatActivity(), PodcastListAdapterListener, OnPodca
         menuInflater.inflate(R.menu.menu_search, menu)
 
         searchMenuItem = menu.findItem(R.id.search_item)
-        searchMenuItem.setOnActionExpandListener(object: OnActionExpandListener {
+        searchMenuItem.setOnActionExpandListener(object : OnActionExpandListener {
             override fun onMenuItemActionExpand(item: MenuItem?): Boolean {
                 return true
             }
@@ -235,6 +235,34 @@ class PodcastActivity : AppCompatActivity(), PodcastListAdapterListener, OnPodca
         supportFragmentManager.popBackStack()
     }
 
+    override fun onShowEpisodePlayer(episodeViewData: PodcastViewModel.EpisodeViewData) {
+        podcastViewModel.activeEpisodeViewData = episodeViewData
+        showPlayerFragment()
+    }
+
+    private fun showPlayerFragment() {
+        val episodePlayerFragment = createEpisodePlayerFragment()
+
+        supportFragmentManager.beginTransaction()
+            .replace(
+                R.id.podcastDetailsContainer,
+                episodePlayerFragment,
+                TAG_PLAYER_FRAGMENT
+            )
+            .addToBackStack(TAG_PLAYER_FRAGMENT)
+            .commit()
+
+        podcastRecyclerView.visibility = View.INVISIBLE
+        searchMenuItem.isVisible = false
+    }
+
+    private fun createEpisodePlayerFragment(): EpisodePlayerFragment {
+        val episodePlayerFragment =
+            supportFragmentManager.findFragmentByTag(TAG_PLAYER_FRAGMENT) as EpisodePlayerFragment?
+
+        return episodePlayerFragment ?: EpisodePlayerFragment.newInstance()
+    }
+
     private fun scheduleJobs() {
         val constraints: Constraints = Constraints.Builder().apply {
             setRequiredNetworkType(NetworkType.CONNECTED)
@@ -257,5 +285,6 @@ class PodcastActivity : AppCompatActivity(), PodcastListAdapterListener, OnPodca
         private const val TAG = "PodcastActivity"
         private const val TAG_DETAILS_FRAGMENT = "DetailsFragment"
         private const val TAG_EPISODE_UPDATE_JOB = "com.raywenderlich.podplay.episodes"
+        private const val TAG_PLAYER_FRAGMENT = "PlayerFragment"
     }
 }
