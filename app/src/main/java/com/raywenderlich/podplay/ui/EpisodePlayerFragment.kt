@@ -114,6 +114,13 @@ class EpisodePlayerFragment : Fragment() {
         } else {
             speedButton.visibility = View.INVISIBLE
         }
+
+        forwardButton.setOnClickListener {
+            seekBy(30)
+        }
+        replayButton.setOnClickListener {
+            seekBy(-10)
+        }
     }
 
     private fun initMediaBrowser() {
@@ -175,6 +182,12 @@ class EpisodePlayerFragment : Fragment() {
         speedButton.text = "${playerSpeed}x"
     }
 
+    private fun seekBy(seconds: Int) {
+        val fragmentActivity = activity as FragmentActivity
+        val controller = MediaControllerCompat.getMediaController(fragmentActivity)
+        val newPosition = controller.playbackState.position + seconds * 1000
+        controller.transportControls.seekTo(newPosition)
+    }
 
     inner class MediaControllerCallback : MediaControllerCompat.Callback() {
         override fun onMetadataChanged(metadata: MediaMetadataCompat?) {

@@ -140,6 +140,20 @@ class PodplayMediaCallback(
         mediaUri = uri
     }
 
+    override fun onSeekTo(pos: Long) {
+        super.onSeekTo(pos)
+
+        mediaPlayer?.seekTo(pos.toInt())
+
+        val playbackState: PlaybackStateCompat? = mediaSession.controller.playbackState
+
+        if (playbackState != null) {
+            setState(playbackState.state)
+        } else {
+            setState(PlaybackStateCompat.STATE_PAUSED)
+        }
+    }
+
     private fun ensureAudioFocus(): Boolean {
         val audioManager = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
         val result: Int
