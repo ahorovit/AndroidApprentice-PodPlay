@@ -8,6 +8,7 @@ import android.media.MediaPlayer
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.os.ResultReceiver
 import android.support.v4.media.MediaMetadataCompat
 import android.support.v4.media.session.MediaSessionCompat
 import android.support.v4.media.session.PlaybackStateCompat
@@ -65,11 +66,42 @@ class PodplayMediaCallback(
         stopPlaying()
     }
 
-    private fun setState(state: Int) {
+    private fun setState(state: Int, newSpeed: Float? = null) {
         var position: Long = -1
 
         mediaPlayer?.let {
             position = it.currentPosition.toLong()
+        }
+
+        var speed = 1.0f
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            speed = if (newSpeed == null) {
+                mediaPlayer?.playbackParams?.speed ?: 1.0f
+            } else {
+                newSpeed
+            }
+
+            mediaPlayer?.let { mediaPlayer ->
+                try {
+                    mediaPlayer.playbackParams = mediaPlayer.playbackParams.setSpeed(speed)
+
+                    // Some versions of Android won't let you change playbackParams like this
+                    // mediaPlayer must be reset to clear state in this situation
+                } catch (e: Exception) {
+                    mediaPlayer.reset()
+                    mediaUri?.let { mediaUri ->
+                        mediaPlayer.setDataSource(context, mediaUri)
+                    }
+                    mediaPlayer.prepare()
+                    mediaPlayer.playbackParams = mediaPlayer.playbackParams.setSpeed(speed)
+                    mediaPlayer.seekTo(position.toInt())
+
+                    if (state == PlaybackStateCompat.STATE_PLAYING) {
+                        mediaPlayer.start()
+                    }
+                }
+            }
         }
 
         val playbackState = PlaybackStateCompat.Builder()
@@ -79,7 +111,7 @@ class PodplayMediaCallback(
                         PlaybackStateCompat.ACTION_PLAY_PAUSE or
                         PlaybackStateCompat.ACTION_PAUSE
             )
-            .setState(state, position, 1.0f)
+            .setState(state, position, speed)
             .build()
 
         mediaSession.setPlaybackState(playbackState)
@@ -87,6 +119,20 @@ class PodplayMediaCallback(
         if (state == PlaybackStateCompat.STATE_PAUSED || state == PlaybackStateCompat.STATE_PLAYING) {
             listener?.onStateChanged()
         }
+    }
+
+    override fun onCommand(command: String?, extras: Bundle?, cb: ResultReceiver?) {
+        super.onCommand(command, extras, cb)
+        when (command) {
+            CMD_CHANGESPEED -> extras?.let { changeSpeed(it) }
+        }
+    }
+
+    private fun changeSpeed(extras: Bundle) {
+        val playbackState = mediaSession.controller?.playbackState?.state
+            ?: PlaybackStateCompat.STATE_PAUSED
+
+        setState(playbackState, extras.getFloat(CMD_EXTRA_SPEED))
     }
 
     private fun setNewMedia(uri: Uri?) {
@@ -210,6 +256,12 @@ class PodplayMediaCallback(
 
         listener?.onStopPlaying()
     }
+
+    companion object {
+        const val CMD_CHANGESPEED = "change_speed"
+        const val CMD_EXTRA_SPEED = "speed"
+    }
+
 
     interface PodplayMediaListener {
         fun onStateChanged()
