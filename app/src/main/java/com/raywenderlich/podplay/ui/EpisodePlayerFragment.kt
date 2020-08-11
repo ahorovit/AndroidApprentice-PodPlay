@@ -1,5 +1,6 @@
 package com.raywenderlich.podplay.ui
 
+import android.animation.ValueAnimator
 import android.content.ComponentName
 import android.net.Uri
 import android.os.Build
@@ -9,10 +10,13 @@ import android.support.v4.media.MediaMetadataCompat
 import android.support.v4.media.session.MediaControllerCompat
 import android.support.v4.media.session.MediaSessionCompat
 import android.support.v4.media.session.PlaybackStateCompat
+import android.text.format.DateUtils
 import android.text.method.ScrollingMovementMethod
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.view.animation.LinearInterpolator
+import android.widget.SeekBar
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentActivity
 import androidx.fragment.app.activityViewModels
@@ -29,6 +33,9 @@ class EpisodePlayerFragment : Fragment() {
     private lateinit var mediaBrowser: MediaBrowserCompat
     private var mediaControllerCallback: MediaControllerCallback? = null
     private var playerSpeed = 1.0f
+    private var episodeDuration = 0L
+    private var draggingScrubber = false
+    private var progressAnimator: ValueAnimator? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -57,6 +64,7 @@ class EpisodePlayerFragment : Fragment() {
             if (MediaControllerCompat.getMediaController(fragmentActivity) == null) {
                 registerMediaController(mediaBrowser.sessionToken)
             }
+            updateControlsFromController()
         } else {
             mediaBrowser.connect()
         }
@@ -64,6 +72,7 @@ class EpisodePlayerFragment : Fragment() {
 
     override fun onStop() {
         super.onStop()
+        progressAnimator?.cancel()
         val fragmentActivity = activity as FragmentActivity
         if (MediaControllerCompat.getMediaController(fragmentActivity) != null) {
             mediaControllerCallback?.let {
@@ -71,35 +80,6 @@ class EpisodePlayerFragment : Fragment() {
                     .unregisterCallback(it)
             }
         }
-    }
-
-    private fun updateControls() {
-        episodeTitleTextView.text = podcastViewModel.activeEpisodeViewData?.title
-
-        val htmlDesc = podcastViewModel.activeEpisodeViewData?.description ?: ""
-        val descSpan = HtmlUtils.htmlToSpannable(htmlDesc)
-        episodeDescTextView.text = descSpan
-        episodeDescTextView.movementMethod = ScrollingMovementMethod()
-
-        val fragmentActivity = activity as FragmentActivity
-        Glide.with(fragmentActivity)
-            .load(podcastViewModel.activePodcastViewData?.imageUrl)
-            .into(episodeImageView)
-
-        speedButton.text = "${playerSpeed}x"
-    }
-
-    private fun startPlaying(episodeViewData: PodcastViewModel.EpisodeViewData) {
-        val fragmentActivity = activity as FragmentActivity
-        val controller = MediaControllerCompat.getMediaController(fragmentActivity)
-
-        val viewData = podcastViewModel.activePodcastViewData ?: return
-        val bundle = Bundle()
-        bundle.putString(MediaMetadataCompat.METADATA_KEY_TITLE, episodeViewData.title)
-        bundle.putString(MediaMetadataCompat.METADATA_KEY_ARTIST, viewData.feedTitle)
-        bundle.putString(MediaMetadataCompat.METADATA_KEY_ALBUM_ART_URI, viewData.imageUrl)
-
-        controller.transportControls.playFromUri(Uri.parse(episodeViewData.mediaUrl), bundle)
     }
 
     private fun setupControls() {
@@ -121,6 +101,110 @@ class EpisodePlayerFragment : Fragment() {
         replayButton.setOnClickListener {
             seekBy(-10)
         }
+
+        seekBar.setOnSeekBarChangeListener(
+            object : SeekBar.OnSeekBarChangeListener {
+                override fun onProgressChanged(
+                    seekBar: SeekBar?,
+                    progress: Int,
+                    fromUser: Boolean
+                ) {
+                    currentTimeTextView.text =
+                        DateUtils.formatElapsedTime((progress / 1000).toLong())
+                }
+
+                override fun onStartTrackingTouch(seekBar: SeekBar) {
+                    draggingScrubber = true
+                }
+
+                override fun onStopTrackingTouch(seekBar: SeekBar) {
+                    draggingScrubber = false
+
+                    val fragmentActivity = activity as FragmentActivity
+                    val controller = MediaControllerCompat.getMediaController(fragmentActivity)
+                    if (controller.playbackState != null) {
+                        controller.transportControls.seekTo(seekBar.progress.toLong())
+                    } else {
+                        seekBar.progress = 0
+                    }
+                }
+            }
+        )
+    }
+
+    private fun animateScrubber(progress: Int, speed: Float) {
+        val timeRemaining = ((episodeDuration - progress) / speed).toInt()
+        if (timeRemaining < 0) {
+            return
+        }
+
+        progressAnimator = ValueAnimator.ofInt(progress, episodeDuration.toInt())
+        progressAnimator?.let { animator ->
+            animator.duration = timeRemaining.toLong()
+            animator.interpolator = LinearInterpolator()
+            animator.addUpdateListener {
+                if (draggingScrubber) {
+                    animator.cancel()
+                } else {
+                    val newVal = animator.animatedValue as Int
+
+                    seekBar.progress = newVal
+                }
+            }
+
+            animator.start()
+        }
+    }
+
+    private fun updateControls() {
+        episodeTitleTextView.text = podcastViewModel.activeEpisodeViewData?.title
+
+        val htmlDesc = podcastViewModel.activeEpisodeViewData?.description ?: ""
+        val descSpan = HtmlUtils.htmlToSpannable(htmlDesc)
+        episodeDescTextView.text = descSpan
+        episodeDescTextView.movementMethod = ScrollingMovementMethod()
+
+        val fragmentActivity = activity as FragmentActivity
+        Glide.with(fragmentActivity)
+            .load(podcastViewModel.activePodcastViewData?.imageUrl)
+            .into(episodeImageView)
+
+        speedButton.text = "${playerSpeed}x"
+    }
+
+
+    private fun updateControlsFromController() {
+        val fragmentActivity = activity as FragmentActivity
+        val controller = MediaControllerCompat.getMediaController(fragmentActivity)
+        if (controller != null) {
+            val metadata = controller.metadata
+            if (metadata != null) {
+                handleStateChange(
+                    controller.playbackState.state,
+                    controller.playbackState.position,
+                    playerSpeed
+                )
+                updateControlsFromMetadata(controller.metadata)
+            }
+        }
+    }
+
+    private fun updateControlsFromMetadata(metadata: MediaMetadataCompat) {
+        episodeDuration = metadata.getLong(MediaMetadataCompat.METADATA_KEY_DURATION)
+        endTimeTextView.text = DateUtils.formatElapsedTime(episodeDuration / 1000)
+    }
+
+    private fun startPlaying(episodeViewData: PodcastViewModel.EpisodeViewData) {
+        val fragmentActivity = activity as FragmentActivity
+        val controller = MediaControllerCompat.getMediaController(fragmentActivity)
+
+        val viewData = podcastViewModel.activePodcastViewData ?: return
+        val bundle = Bundle()
+        bundle.putString(MediaMetadataCompat.METADATA_KEY_TITLE, episodeViewData.title)
+        bundle.putString(MediaMetadataCompat.METADATA_KEY_ARTIST, viewData.feedTitle)
+        bundle.putString(MediaMetadataCompat.METADATA_KEY_ALBUM_ART_URI, viewData.imageUrl)
+
+        controller.transportControls.playFromUri(Uri.parse(episodeViewData.mediaUrl), bundle)
     }
 
     private fun initMediaBrowser() {
@@ -153,9 +237,22 @@ class EpisodePlayerFragment : Fragment() {
         }
     }
 
-    private fun handleStateChange(state: Int) {
+    private fun handleStateChange(state: Int, position: Long, speed: Float) {
+        progressAnimator?.let {
+            it.cancel()
+            progressAnimator = null
+        }
+
         val isPlaying = state == PlaybackStateCompat.STATE_PLAYING
         playToggleButton.isActivated = isPlaying
+
+        val progress = position.toInt()
+        seekBar.progress = progress
+        speedButton.text = "${playerSpeed}x"
+
+        if (isPlaying) {
+            animateScrubber(progress, speed)
+        }
     }
 
     private fun registerMediaController(token: MediaSessionCompat.Token) {
@@ -193,6 +290,8 @@ class EpisodePlayerFragment : Fragment() {
         override fun onMetadataChanged(metadata: MediaMetadataCompat?) {
             super.onMetadataChanged(metadata)
             println("metadata changed to ${metadata?.getString(MediaMetadataCompat.METADATA_KEY_MEDIA_URI)}")
+            metadata?.let { updateControlsFromMetadata(it) }
+            seekBar.max = episodeDuration.toInt()
         }
 
         override fun onPlaybackStateChanged(state: PlaybackStateCompat?) {
@@ -200,7 +299,7 @@ class EpisodePlayerFragment : Fragment() {
             println("state changed to $state")
 
             val state = state ?: return
-            handleStateChange(state.state)
+            handleStateChange(state.state, state.position, state.playbackSpeed)
         }
     }
 
@@ -209,6 +308,7 @@ class EpisodePlayerFragment : Fragment() {
             super.onConnected()
             registerMediaController(mediaBrowser.sessionToken)
             println("onConnected()")
+            updateControlsFromController()
         }
 
         override fun onConnectionSuspended() {
